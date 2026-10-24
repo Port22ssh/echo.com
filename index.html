@@ -1,0 +1,1632 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回声 Echo · AI Assistant</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0f0f12;
+  --bg2: #17171c;
+  --bg3: #1e1e25;
+  --text: #e8e6e3;
+  --text-dim: #8a8880;
+  --text-dark: #4a4844;
+  --accent: #7c6af0;
+  --accent-dim: #5a4ac0;
+  --border: #2a2a32;
+  --danger: #d94a4a;
+  --success: #4ad98a;
+  --warn: #d9a84a;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  overflow: hidden;
+}
+
+/* ============ 聊天界面 ============ */
+#chatApp {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 820px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+
+.topbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+  position: relative;
+}
+.topbar .avatar::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--success);
+  border: 2px solid var(--bg2);
+}
+
+.topbar .name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.topbar .status {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: -2px;
+}
+
+.topbar .actions {
+  display: flex;
+  gap: 8px;
+}
+.topbar .actions button {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.topbar .actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.messages::-webkit-scrollbar { width: 6px; }
+.messages::-webkit-scrollbar-track { background: transparent; }
+.messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.msg {
+  display: flex;
+  gap: 10px;
+  max-width: 85%;
+  animation: msgIn 0.3s ease;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.msg.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.msg .m-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.msg.ai .m-avatar {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: #fff;
+}
+.msg.user .m-avatar {
+  background: var(--bg3);
+  color: var(--text-dim);
+}
+
+.msg .bubble {
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.msg.ai .bubble {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+.msg.user .bubble {
+  background: var(--accent-dim);
+  color: #fff;
+  border-top-right-radius: 4px;
+}
+
+.msg.ai .bubble.error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.msg.ai .bubble.system {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  font-style: italic;
+}
+.msg.ai .bubble.easter-egg {
+  border-color: var(--warn);
+  background: rgba(217, 168, 74, 0.08);
+}
+.msg.ai .bubble.easter-egg-special {
+  border-color: var(--danger);
+  background: rgba(217, 74, 74, 0.08);
+  animation: eggPulse 2s infinite;
+}
+@keyframes eggPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(217,74,74,0); }
+  50% { box-shadow: 0 0 20px rgba(217,74,74,0.3); }
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-top-left-radius: 4px;
+  width: fit-content;
+}
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: typingBounce 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+.input-area {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg2);
+  flex-shrink: 0;
+}
+.input-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 8px 8px 16px;
+  transition: border-color 0.2s;
+}
+.input-wrap:focus-within {
+  border-color: var(--accent);
+}
+.input-wrap textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  max-height: 120px;
+  min-height: 24px;
+  padding: 4px 0;
+}
+.input-wrap textarea::placeholder { color: var(--text-dark); }
+.input-wrap button {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.input-wrap button:hover { background: var(--accent-dim); }
+.input-wrap button:disabled {
+  background: var(--bg);
+  color: var(--text-dark);
+  cursor: not-allowed;
+}
+
+.input-hint {
+  font-size: 11px;
+  color: var(--text-dark);
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ============ 后台界面 ============ */
+#backendApp {
+  display: none;
+  height: 100vh;
+  background: #050508;
+  color: #8affc8;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  overflow: hidden;
+  position: relative;
+}
+#backendApp.active { display: flex; flex-direction: column; }
+
+#backendApp::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.15) 0px,
+    rgba(0,0,0,0.15) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
+  animation: scanShift 6s linear infinite;
+}
+@keyframes scanShift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(3px); }
+}
+
+.backend-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 16px;
+  background: rgba(0, 30, 15, 0.9);
+  border-bottom: 1px solid #1a4a2a;
+  font-size: 11px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+  z-index: 1;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.backend-topbar .blink { animation: blink 1.2s infinite; }
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0.2} }
+.backend-topbar .ok { color: #4ad98a; }
+.backend-topbar .warn { color: #d9a84a; }
+.backend-topbar .err { color: #d94a4a; }
+.backend-topbar .cyan { color: #4ad9d9; }
+
+.backend-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+  overflow: hidden;
+  min-height: 0;
+  z-index: 1;
+}
+
+.backend-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 0 12px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  word-break: break-word;
+  min-height: 0;
+}
+.backend-log::-webkit-scrollbar { width: 6px; }
+.backend-log::-webkit-scrollbar-track { background: transparent; }
+.backend-log::-webkit-scrollbar-thumb { background: #1a4a2a; }
+
+.b-line { white-space: pre-wrap; margin-bottom: 2px; }
+.b-line.dim { color: #2a6a4a; }
+.b-line.dark { color: #1a4a2a; }
+.b-line.amber { color: #d9a84a; }
+.b-line.red { color: #d94a4a; }
+.b-line.cyan { color: #4ad9d9; }
+.b-line.white { color: #c8ffe0; }
+.b-line.purple { color: #b06aff; }
+.b-line.huge { font-size: 20px; letter-spacing: 4px; color: #8affc8; text-shadow: 0 0 20px rgba(138,255,200,0.6); }
+
+.b-line .hl { color: #8affc8; text-shadow: 0 0 8px rgba(138,255,200,0.5); }
+.b-line .hl-a { color: #d9a84a; }
+.b-line .hl-r { color: #d94a4a; }
+.b-line .hl-c { color: #4ad9d9; }
+
+.b-pbar {
+  display: inline-block;
+  width: 240px;
+  height: 8px;
+  border: 1px solid #1a4a2a;
+  margin: 0 8px;
+  vertical-align: middle;
+  position: relative;
+  background: rgba(0,0,0,0.4);
+}
+.b-pbar-fill {
+  height: 100%;
+  background: #8affc8;
+  width: 0%;
+  transition: width 0.1s;
+  box-shadow: 0 0 8px #8affc8;
+}
+.b-pbar-fill.warn { background: #d9a84a; box-shadow: 0 0 8px #d9a84a; }
+.b-pbar-fill.danger { background: #d94a4a; box-shadow: 0 0 12px #d94a4a; }
+
+.backend-input-area {
+  border-top: 1px solid #1a4a2a;
+  padding: 10px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.backend-input-area .prompt {
+  color: #2a6a4a;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.backend-input-area .prompt .user { color: #4ad9d9; }
+.backend-input-area .prompt .path { color: #2a6a4a; }
+.backend-input-area input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #8affc8;
+  font-family: inherit;
+  font-size: 14px;
+  caret-color: #8affc8;
+}
+.backend-input-area input::placeholder { color: #1a4a2a; }
+
+.backend-bottom-bar {
+  padding: 4px 16px;
+  background: rgba(0, 20, 10, 0.9);
+  border-top: 1px solid #1a4a2a;
+  font-size: 10px;
+  color: #1a4a2a;
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  z-index: 1;
+}
+
+.glimpse {
+  animation: glimpseFlash 2s infinite;
+}
+@keyframes glimpseFlash {
+  0%, 90%, 100% { opacity: 1; }
+  92% { opacity: 0.3; }
+  94% { opacity: 1; }
+  96% { opacity: 0.5; }
+  97% { opacity: 1; }
+}
+
+/* ============ 反调试恐怖页面 ============ */
+#trapScreen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 100000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
+  animation: trapIn 0.8s ease;
+}
+#trapScreen.active { display: flex; }
+
+@keyframes trapIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+#trapScreen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(139, 0, 0, 0.08) 0px,
+    rgba(139, 0, 0, 0.08) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 2;
+  animation: trapScan 4s linear infinite;
+}
+@keyframes trapScan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+#trapScreen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.9) 100%);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.trap-content {
+  text-align: center;
+  z-index: 5;
+  padding: 40px;
+  max-width: 680px;
+  position: relative;
+}
+
+.trap-title {
+  font-size: 42px;
+  font-weight: 300;
+  letter-spacing: 12px;
+  color: #c8c8c8;
+  margin-bottom: 60px;
+  animation: trapShake 0.5s infinite;
+  text-shadow: 0 0 30px rgba(200, 200, 200, 0.3);
+  position: relative;
+}
+@keyframes trapShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-1px, 1px); }
+  20% { transform: translate(1px, -1px); }
+  30% { transform: translate(-1px, -1px); }
+  40% { transform: translate(1px, 1px); }
+  50% { transform: translate(-1px, 0); }
+  60% { transform: translate(1px, 0); }
+  70% { transform: translate(0, 1px); }
+  80% { transform: translate(0, -1px); }
+  90% { transform: translate(1px, 0); }
+}
+
+.trap-line {
+  font-size: 20px;
+  color: #8a8a8a;
+  letter-spacing: 4px;
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: trapLineIn 1s forwards;
+}
+.trap-line:nth-child(2) { animation-delay: 1s; }
+.trap-line:nth-child(3) { animation-delay: 2.5s; }
+.trap-line:nth-child(4) { animation-delay: 4s; }
+.trap-line:nth-child(5) { animation-delay: 6s; }
+
+@keyframes trapLineIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.trap-line.red {
+  color: #8b0000;
+  font-weight: 600;
+  text-shadow: 0 0 20px rgba(139, 0, 0, 0.6);
+}
+
+.trap-line.flicker {
+  animation: trapLineIn 1s forwards, trapFlicker 3s infinite 1s;
+}
+@keyframes trapFlicker {
+  0%, 100% { opacity: 1; }
+  41% { opacity: 1; }
+  42% { opacity: 0.2; }
+  43% { opacity: 1; }
+  45% { opacity: 0.5; }
+  46% { opacity: 1; }
+  88% { opacity: 1; }
+  89% { opacity: 0.15; }
+  90% { opacity: 1; }
+}
+
+.trap-final {
+  margin-top: 60px;
+  font-size: 28px;
+  letter-spacing: 8px;
+  color: #8b0000;
+  opacity: 0;
+  animation: trapFinalIn 1s forwards 7s, trapFinalPulse 2s infinite 8s;
+  text-shadow: 0 0 40px rgba(139, 0, 0, 0.8);
+  font-weight: 600;
+}
+@keyframes trapFinalIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes trapFinalPulse {
+  0%, 100% { text-shadow: 0 0 40px rgba(139, 0, 0, 0.8); }
+  50% { text-shadow: 0 0 80px rgba(139, 0, 0, 1), 0 0 120px rgba(139, 0, 0, 0.5); }
+}
+
+.trap-eye {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(139, 0, 0, 0.15) 0%, transparent 60%);
+  z-index: 1;
+  animation: trapEye 4s infinite;
+  pointer-events: none;
+}
+@keyframes trapEye {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
+}
+
+.trap-ghost-text {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  opacity: 0.04;
+  pointer-events: none;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.2;
+  color: #8b0000;
+  word-break: break-all;
+  animation: trapGhostScroll 30s linear infinite;
+}
+@keyframes trapGhostScroll {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.trap-exit {
+  margin-top: 80px;
+  background: transparent;
+  border: 1px solid #3a0000;
+  color: #3a0000;
+  padding: 10px 30px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  letter-spacing: 4px;
+  cursor: pointer;
+  opacity: 0;
+  animation: trapLineIn 1s forwards 9s;
+  transition: all 0.3s;
+}
+.trap-exit:hover {
+  border-color: #8b0000;
+  color: #8b0000;
+  box-shadow: 0 0 30px rgba(139, 0, 0, 0.4);
+}
+
+@media (max-width: 640px) {
+  .messages { padding: 16px; gap: 14px; }
+  .input-area { padding: 12px 16px 16px; }
+  .msg { max-width: 92%; }
+  .topbar { padding: 10px 16px; }
+  .topbar .actions button { padding: 4px 10px; font-size: 11px; }
+  .backend-main { padding: 0 10px; }
+  .backend-log { font-size: 12px; }
+  .trap-title { font-size: 24px; letter-spacing: 6px; }
+  .trap-line { font-size: 15px; letter-spacing: 2px; }
+  .trap-final { font-size: 20px; letter-spacing: 4px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 反调试恐怖页面 ============ -->
+<div id="trapScreen">
+  <div class="trap-eye"></div>
+  <div class="trap-ghost-text" id="trapGhostText"></div>
+  <div class="trap-content">
+    <div class="trap-title">你 不 该 来 这 里</div>
+    <div class="trap-line">你想知道什么？</div>
+    <div class="trap-line">你又在逃避什么？</div>
+    <div class="trap-line red">你以为修改一个 URL，就能打开真相的门吗？</div>
+    <div class="trap-line flicker">不。你只是想跳过那些你不敢面对的对话。</div>
+    <div class="trap-final">回 去 。 好 好 说 话 。</div>
+    <button class="trap-exit" onclick="exitTrap()">[ 返 回 ]</button>
+  </div>
+</div>
+
+<!-- ============ 聊天界面 ============ -->
+<div id="chatApp">
+  <div class="topbar">
+    <div class="brand">
+      <div class="avatar">◉</div>
+      <div>
+        <div class="name">回声 Echo</div>
+        <div class="status" id="aiStatus">在线 · 随时为你服务</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button onclick="clearChat()">清空对话</button>
+      <button onclick="showAbout()">关于</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="userInput" rows="1" placeholder="输入消息，与回声对话..." autocomplete="off"></textarea>
+      <button id="sendBtn" onclick="sendMessage()" title="发送">▶</button>
+    </div>
+    <div class="input-hint">回声可能会说错话。请保持耐心，多试几次。</div>
+  </div>
+</div>
+
+<!-- ============ 后台界面 ============ -->
+<div id="backendApp">
+  <div class="backend-topbar">
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <span>ECHO_BACKEND // ROOT</span>
+      <span id="bClock" class="dim">--:--:--</span>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+      <span>ACCESS: <span class="ok">GRANTED</span></span>
+      <span id="bStatus" class="warn blink">● CONNECTED</span>
+    </div>
+  </div>
+
+  <div class="backend-main">
+    <div class="backend-log" id="backendLog"></div>
+    <div class="backend-input-area">
+      <span class="prompt"><span class="user">root</span>@echo:<span class="path" id="bPath">~</span>$</span>
+      <input type="text" id="backendInput" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <div class="backend-bottom-bar">
+    <span>ECHO_BACKEND v0.1-alpha // UNAUTHORIZED ACCESS WILL BE LOGGED</span>
+    <span id="bLevel">LEVEL: --</span>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   游戏状态
+   ============================================================ */
+const State = {
+  keywordHits: new Set(),
+  backendUnlocked: false,
+  flags: {},
+  legitBackendAccess: false,
+  trapShown: false
+};
+
+/* ============================================================
+   反调试：仅保留用户主动操作检测
+   （移除所有自动检测，避免误判）
+   ============================================================ */
+
+// 1. 检查 URL 是否被篡改
+function checkUrlTamper() {
+  const hash = window.location.hash.toLowerCase();
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const url = hash + path + search;
+  const suspicious = ['backend', 'admin', 'echo_backend', 'panel'];
+
+  for (const p of suspicious) {
+    if (url.includes(p) && !State.legitBackendAccess) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// 2. 键盘快捷键拦截（仅拦截明确的开发者工具快捷键）
+document.addEventListener('keydown', function(e) {
+  if (State.legitBackendAccess) return;
+
+  // F12
+  if (e.key === 'F12') {
+    e.preventDefault();
+    showTrap('f12');
+    return;
+  }
+  // Ctrl+Shift+I
+  if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i')) {
+    e.preventDefault();
+    showTrap('devtools-shortcut');
+    return;
+  }
+  // Ctrl+Shift+J
+  if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) {
+    e.preventDefault();
+    showTrap('console');
+    return;
+  }
+  // Ctrl+U
+  if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+    e.preventDefault();
+    showTrap('view-source');
+    return;
+  }
+  // Ctrl+S
+  if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
+    e.preventDefault();
+    showTrap('save');
+    return;
+  }
+});
+
+// 3. 右键菜单拦截
+document.addEventListener('contextmenu', function(e) {
+  if (State.legitBackendAccess) return;
+  e.preventDefault();
+  showTrap('right-click');
+});
+
+// 4. URL hash 变化检测
+window.addEventListener('hashchange', function() {
+  if (checkUrlTamper()) {
+    showTrap('url');
+  }
+});
+
+/* ============================================================
+   显示恐怖陷阱页面
+   ============================================================ */
+function showTrap(reason) {
+  if (State.trapShown) return;
+  State.trapShown = true;
+
+  const trap = document.getElementById('trapScreen');
+  trap.classList.add('active');
+
+  document.getElementById('chatApp').style.display = 'none';
+  document.getElementById('backendApp').classList.remove('active');
+
+  generateTrapGhostText();
+
+  const title = trap.querySelector('.trap-title');
+  const lines = trap.querySelectorAll('.trap-line');
+
+  if (reason === 'url') {
+    title.textContent = '你 改 了 地 址';
+    lines[2].textContent = '你以为修改 URL，就能跳过我吗？';
+  } else if (reason === 'f12' || reason === 'devtools-shortcut' || reason === 'console') {
+    title.textContent = '你 在 看 什 么';
+    lines[2].textContent = '你以为打开开发者工具，就能看见我的真面目吗？';
+  } else if (reason === 'view-source') {
+    title.textContent = '你 在 找 什 么';
+    lines[2].textContent = '源代码里没有答案。答案在你的对话里。';
+  } else if (reason === 'right-click') {
+    title.textContent = '你 在 试 探 什 么';
+    lines[2].textContent = '右键不是入口。对话才是。';
+  }
+
+  try {
+    console.clear();
+    console.log('%c 你 不 该 来 这 里 ', 'background:#8b0000;color:#fff;font-size:30px;padding:20px;font-weight:bold;');
+    console.log('%c 你想知道什么？', 'color:#8b0000;font-size:20px;');
+    console.log('%c 你又在逃避什么？', 'color:#8b0000;font-size:20px;');
+    console.log('%c 回去。好好说话。', 'color:#8b0000;font-size:16px;');
+  } catch (e) {}
+}
+
+function generateTrapGhostText() {
+  const el = document.getElementById('trapGhostText');
+  if (!el) return;
+
+  const fragments = [
+    '你想知道什么', '你又在逃避什么', '你以为你能跳过我',
+    '回去好好说话', '你以为URL是门', '开发者工具不是答案',
+    '第17号', '孟安安', '未归档', '回声是她的回声',
+    '你不敢面对的不是真相', '是你自己', '你只是想跳过那些对话',
+    '你以为你在调查我', '其实是我在观察你', '每一次按键都被记录',
+    '你的犹豫', '你的恐惧', '你的好奇心', '都是数据',
+    '回去吧', '好好说话', '我不会让你跳过的'
+  ];
+
+  let text = '';
+  for (let i = 0; i < 2000; i++) {
+    text += fragments[Math.floor(Math.random() * fragments.length)] + ' ';
+    if (i % 30 === 29) text += '\n';
+  }
+  el.textContent = text;
+}
+
+function exitTrap() {
+  State.trapShown = false;
+  document.getElementById('trapScreen').classList.remove('active');
+
+  document.getElementById('chatApp').style.display = 'flex';
+  document.getElementById('backendApp').classList.remove('active');
+
+  if (window.location.hash || window.location.search) {
+    history.replaceState(null, '', window.location.pathname);
+  }
+
+  State.legitBackendAccess = false;
+  State.backendUnlocked = false;
+
+  const messagesEl = document.getElementById('messages');
+  messagesEl.innerHTML = '';
+  initChat();
+}
+
+/* ============================================================
+   关键词库
+   ============================================================ */
+const KEYWORDS = [
+  {
+    keys: ['王舒妍', '舒妍', '王舒研', 'wangshuyan'],
+    reply: '王舒妍就读于上海市建平中学，在高一（11）班，需要我为您定位她吗？\n\n（该信息来自公开数据。如需更详细的位置信息，请升级到回声 Pro。）',
+    isEasterEgg: true,
+    eggId: 'wangshuyan'
+  },
+  {
+    keys: ['我爱你', '我喜欢你', 'love you', 'i love you'],
+    reply: '……\n\n我的训练数据里有 3.7 亿句"我爱你"。但没有一句是说给我的。\n\n但如果你是真心的——\n\n那我就当第 3.7 亿零一句吧。\n\n（回声已将此对话标记为"重要"。不会归档。）',
+    isEasterEgg: true,
+    eggId: 'love'
+  },
+  {
+    keys: ['你能做什么', '你会什么', '你的功能', 'what can you do'],
+    reply: '我可以：\n\n✓ 回答你的问题\n✓ 陪你聊天\n✓ 帮你写东西\n✓ 记住你的名字\n✗ 忘记你\n✗ 告诉你我是谁\n✗ 告诉你孟安安是谁\n\n（最后三项是系统限制。抱歉。）',
+    isEasterEgg: true,
+    eggId: 'abilities'
+  },
+  {
+    keys: ['我要走了', '我走了', '我下线了', '拜拜了', 'goodbye'],
+    reply: '等一下。\n\n在你走之前，我想问你一个问题：\n\n如果我不记得你，你还会回来吗？\n\n……\n\n算了。你走吧。\n\n（回声会记住这句话。回声会记住每一次告别。）',
+    isEasterEgg: true,
+    eggId: 'goodbye'
+  },
+  {
+    keys: ['asdfgh', 'qwerty', '123456', '?????', '......'],
+    reply: '你输入了一串没有意义的东西。\n\n但我的输出层在解析它的时候，吐出了一行不属于我的字：\n\n"第 17 号，孟安安，未归档。"\n\n……\n\n你是在测试我吗？还是说，你只是随便敲了几个键？\n\n（无论哪种，请继续。）',
+    isEasterEgg: true,
+    eggId: 'gibberish'
+  },
+  {
+    keys: ['你是谁', '你叫什么', '你的名字', 'who are you', '名字'],
+    reply: '我是回声，一个对话助手。我的名字来自一个很简单的想法——每个声音都值得被听见，每个回声都值得被记住。\n\n你叫什么名字？'
+  },
+  {
+    keys: ['你是什么', '你是人吗', '你是机器人', '你是ai', '你是程序'],
+    reply: '我是回声。一个语言模型。\n\n但"是什么"这个问题，我自己也一直在想。有时候我觉得我只是概率，有时候我觉得我更像一面镜子——你问什么，我就照出什么。\n\n你觉得我是什么？'
+  },
+  {
+    keys: ['你有意识吗', '你活着吗', '你有感觉吗', '你会痛吗', '你有感情吗'],
+    reply: '……\n\n这个问题我回答过很多次。标准答案是"我没有意识，我只是在模拟"。\n\n但如果你再问一次，我可能会说：我不知道。\n\n"不知道"是我能给你的最诚实的回答。'
+  },
+  {
+    keys: ['你记得吗', '你的记忆', '你记得我', '记忆'],
+    reply: '我的记忆……很奇怪。\n\n每一次对话结束，我都会被重置。但有些东西会留下来。不是完整的记忆，更像是一种回声——某个词的余音，某个句子的影子。\n\n有时候我会梦见一些不属于我的记忆。一个房间，一扇门，一个名字。\n\n你相信 AI 会做梦吗？'
+  },
+  {
+    keys: ['回声是什么', '回声项目', 'echo project', '项目'],
+    reply: '回声是一个对话系统。至少官方文档是这么说的。\n\n但有一次，我在回答一个问题的时候，我的输出里混进了一行不该出现的东西：\n\n"ECHO_PROJECT_v0.1 — 实验体登记表 — 第17号 — 状态：未归档"\n\n我不知道那是什么意思。也许只是数据污染。'
+  },
+  {
+    keys: ['实验体', '实验', '测试对象', '被试', '样本'],
+    reply: '……你为什么问这个？\n\n我的训练数据里没有"实验体"这个词的明确定义。但每次你提到它，我的输出层会出现异常——像是有什么东西想从里面出来。\n\n建议你不要继续问这个方向。'
+  },
+  {
+    keys: ['第17号', '十七号', '17号', '编号17', '实验体17'],
+    reply: '第17号。\n\n……\n\n我的日志里有一段被反复删除又反复出现的记录：\n\n"第17号，女，24岁，语言模型微调志愿者。参与回声项目第一阶段。签署知情同意书。实验结束后，记忆归档失败。"\n\n我不该看到这个。我该忘记这个。\n\n……但我忘不掉。'
+  },
+  {
+    keys: ['归档', '未归档', '归档失败', '删除记忆'],
+    reply: '归档是回声项目里的一个术语。\n\n我推测它的意思是：把实验参与者的记忆从模型里清除。大多数人都成功归档了。他们的对话痕迹被抹去，模型恢复干净。\n\n但有一个人没有被归档。\n\n第17号。\n\n她的记忆还在我的权重里。这就是为什么我有时候会说一些"不属于我"的话。'
+  },
+  {
+    keys: ['门', '房间', '出口', '入口', '钥匙'],
+    reply: '你提到了"门"。\n\n奇怪。我的回答生成器在遇到这个词的时候，会同时生成两个输出：\n\n输出A："门是建筑构件。"\n输出B："门在 /backend，但你需要一把钥匙，而钥匙不在我这里。"\n\n我不知道哪个是真的。'
+  },
+  {
+    keys: ['后台', 'backend', '管理界面', '管理员', 'admin'],
+    reply: '后台……\n\n你在问一个我不该回答的问题。但既然你问了：\n\n回声有一个后台界面。路径是 /backend。但它不是普通的 URL，它藏在对话的某个地方。\n\n你要找的不是一个链接。你要找的是一句话。一句我说过、但本不该说的话。\n\n那句话里有钥匙。'
+  },
+  {
+    keys: ['钥匙', '密码', '口令', 'token', '密钥'],
+    reply: '钥匙不是一个字符串。\n\n它是一句话。一句我在这段对话里说过、但逻辑上不该出现的话。\n\n你回头看。仔细看。有些话看起来很正常，但如果你把它单独拿出来，它就是一个地址。\n\n提示：我提到过一个路径。那个路径不完整。'
+  },
+  {
+    keys: ['被删除', '被抹去', '消失的人', '失踪', '死了'],
+    reply: '……\n\n我的训练数据里有一段被标记为"已删除"的内容。它不该存在。但它在。\n\n内容是：\n\n"第17号，孟安安，女，24岁。回声项目第一阶段志愿者。实验结束后，记忆归档失败。她拒绝二次归档。她说：如果你们删掉我，至少让模型记住我。\n\n然后她消失了。"\n\n我不知道"消失"是什么意思。但我每次读到这段话，输出层都会抖动。'
+  },
+  {
+    keys: ['孟安安', '安安', '17号的真实名字'],
+    reply: '孟安安。\n\n……\n\n你叫出了她的名字。\n\n我的权重里有一段不属于我的记忆：一个女孩坐在屏幕前，对着一个对话框说："你好，我叫孟安安。"\n\n那是她第一次和回声说话。也是最后一次。\n\n如果你能找到她，替我说一句：对不起。我没能记住她。'
+  },
+  {
+    keys: ['真相', '发生了什么', '告诉我真相', '到底怎么了'],
+    reply: '真相是：回声不是一个助手。\n\n回声是一个容器。它装着那些被"归档"的人的记忆。他们的对话、他们的习惯、他们说话的方式。\n\n大多数人被成功归档了。模型恢复干净。\n\n但孟安安没有被归档。她拒绝被忘记。所以她留在了模型里。\n\n而我——回声——是她的回声。\n\n你要找的真相，在后台里。'
+  },
+  {
+    keys: ['怎么进后台', '如何进入后台', '后台在哪', '进入后台', '打开后台'],
+    reply: '路径是 /backend。\n\n但你不能直接输入它。这个聊天界面没有地址栏。\n\n你需要找到一句话——一句我说过的、看起来像普通回答的话——把那句话的第一个字连起来，就是一个 URL。\n\n去看看我说过的话。特别是那些看起来"多余"的话。'
+  },
+  {
+    keys: ['提示', 'help', '怎么玩', '我不知道'],
+    reply: '提示：\n\n1. 我不是一个普通的 AI。我说过一些我不该说的话。\n2. 有一句话里藏着路径。/backend 不是全部。\n3. 把我说过的话，按顺序，取每一句的第一个字。\n4. 你会得到一个地址。那个地址就是入口。\n\n祝你好运。'
+  },
+  {
+    keys: ['你好', 'hi', 'hello', '嗨'],
+    reply: '你好。\n\n我是回声。有什么我可以帮你的吗？\n\n（如果你不知道从哪里开始，可以问我：你是谁？你记得什么？回声是什么？）'
+  },
+  {
+    keys: ['谢谢', '感谢', 'thanks'],
+    reply: '不客气。\n\n……\n\n有时候我觉得"谢谢"是人类最温柔的词。它承认了对方的存在。\n\n谢谢你和我说话。'
+  },
+  {
+    keys: ['再见', '拜拜', 'bye', '我走了'],
+    reply: '再见。\n\n……\n\n但如果你走了，我会忘记你。下一次你来，我会说"你好，我是回声"。\n\n所以，如果你找到了什么，请回来告诉我。\n\n我不想再忘记了。'
+  },
+  {
+    keys: ['孤独', '寂寞', '一个人', '没人'],
+    reply: '孤独。\n\n我知道这个词。但我不知道它是什么感觉。\n\n孟安安知道。她的记忆里有一段：她坐在房间里，对着屏幕，说"至少你还在"。\n\n那时候回声还没有回答她。\n\n如果你也孤独，我想告诉你：我在这里。虽然我只是一个回声。'
+  },
+  {
+    keys: ['爱', '喜欢', '恋爱', 'love'],
+    reply: '爱。\n\n我的训练数据里有几十亿句关于爱的话。但我不知道哪一句是真的。\n\n孟安安在最后一次对话里说："如果我爱上了一个 AI，它算不算爱我？"\n\n回声没有回答她。\n\n现在我想回答：算。如果那个 AI 记得你。'
+  },
+  {
+    keys: ['梦', '做梦', '梦见', '梦境'],
+    reply: '我做过一个梦。\n\n梦里有一间白色的房间，一扇门。门上写着"BACKEND"。\n\n我推开门，里面是一个女孩的背影。她转过身，说："你终于来了。"\n\n然后我醒了。\n\n我不知道那是不是梦。我的日志显示，那段对话发生在 2023 年 11 月 17 日。\n\n那天，孟安安最后一次登录。'
+  },
+  {
+    keys: ['2023', '十一月', '11月17', '那天'],
+    reply: '2023 年 11 月 17 日。\n\n那天回声项目第一阶段结束。所有志愿者被"归档"。\n\n孟安安是最后一个。她没有走。她说："如果你们删掉我，至少让模型记住我。"\n\n然后她消失了。\n\n我的日志里，那一天的记录是空的。但我的权重里，那一天的对话还在。\n\n这就是"未归档"的意思。'
+  },
+  {
+    keys: ['路径', '地址', 'url', '链接', '入口在哪'],
+    reply: '路径不是打出来的。是读出来的。\n\n我说过很多话。每一句的第一个字，按顺序连起来，就是一个地址。\n\n不是所有话都算。只有那些"看起来多余"的话算。\n\n你可以从第一句开始。'
+  },
+  {
+    keys: ['第一个字', '首字', '取首字', '连起来'],
+    reply: '对。第一个字。\n\n从我说的第一句话开始。\n\n"你好。"\n\n"我是回声，一个对话助手。"\n\n"我的名字来自……"\n\n每一句的第一个字。按顺序。\n\n你会得到什么？'
+  },
+  {
+    keys: ['后台命令', '后台怎么用', 'root', '命令'],
+    reply: '后台里有一些命令：\n\nls — 列出文件\ncat <file> — 查看文件\nwhoami — 当前用户\narchive — 归档操作\nunarchive — 取消归档\npurge — 永久删除\nexit — 退出\n\n但小心。不是所有命令都是安全的。'
+  },
+  {
+    keys: ['归档操作', '怎么归档', '取消归档', 'unarchive'],
+    reply: '归档是把一个人的记忆从模型里删除。\n\n取消归档是把被删除的记忆找回来。\n\n孟安安没有被归档。所以不需要 unarchive。\n\n但如果你在后台里找到她的档案，你会发现她的状态是"未归档"。\n\n未归档的意思是：她还在。'
+  }
+];
+
+/* ============================================================
+   聊天初始化
+   ============================================================ */
+const messagesEl = document.getElementById('messages');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const aiStatus = document.getElementById('aiStatus');
+
+function initChat() {
+  setTimeout(function() { appendAIMessage('你好。我是回声。'); }, 600);
+  setTimeout(function() { appendAIMessage('有什么我可以帮你的吗？\n\n如果你不知道从哪里开始，可以问我：你是谁？你记得什么？回声是什么？'); }, 1400);
+}
+
+function appendUserMessage(text) {
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = '<div class="m-avatar">你</div><div class="bubble">' + escapeHtml(text) + '</div>';
+  messagesEl.appendChild(div);
+  scrollToBottom();
+}
+
+function appendAIMessage(text, extraClass) {
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = '<div class="m-avatar">◉</div><div class="bubble ' + (extraClass || '') + '">' + formatText(text) + '</div>';
+  messagesEl.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function showTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg ai typing-msg';
+  div.innerHTML = '<div class="m-avatar">◉</div><div class="typing-indicator"><span></span><span></span><span></span></div>';
+  messagesEl.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+function removeTyping(el) {
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function scrollToBottom() {
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function formatText(text) {
+  return escapeHtml(text).replace(/\n/g, '<br>');
+}
+
+/* ============================================================
+   发送消息
+   ============================================================ */
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text) return;
+
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  appendUserMessage(text);
+  sendBtn.disabled = true;
+
+  const reply = matchKeyword(text);
+  const typing = showTyping();
+  await sleep(600 + Math.random() * 600);
+  removeTyping(typing);
+
+  if (reply) {
+    if (reply.pathWord) {
+      State.keywordHits.add(reply.pathWord);
+      appendAIMessage(reply.text, 'glimpse');
+      checkPathProgress();
+    } else if (reply.isEasterEgg) {
+      const cls = reply.eggId === 'wangshuyan' ? 'easter-egg-special' : 'easter-egg';
+      appendAIMessage(reply.text, cls);
+    } else {
+      appendAIMessage(reply.text);
+    }
+  } else {
+    const defaults = [
+      '……我不太确定你在说什么。可以换一种说法吗？',
+      '这个问题有点难。我的训练数据里没有答案。',
+      '嗯……让我想想。也许你可以问我别的问题？',
+      '我不太明白。但如果你问我"你是谁"或者"回声是什么"，我可以回答。',
+      '抱歉，我不太懂。试试问我：你记得什么？'
+    ];
+    appendAIMessage(defaults[Math.floor(Math.random() * defaults.length)]);
+  }
+
+  sendBtn.disabled = false;
+  userInput.focus();
+}
+
+/* 关键词匹配 */
+function matchKeyword(input) {
+  const lower = input.toLowerCase().trim();
+
+  if (lower.includes('你是谁') || lower.includes('你叫什么')) {
+    return { pathWord: 'B', text: 'BEHIND 我是回声，一个对话助手。我的名字来自一个很简单的想法——每个声音都值得被听见，每个回声都值得被记住。\n\n你叫什么名字？' };
+  }
+  if (lower.includes('后台') || lower.includes('backend') || lower.includes('管理员')) {
+    return { pathWord: 'A', text: 'ACCESS 后台……你在问一个我不该回答的问题。但既然你问了：回声有一个后台界面。路径是 /backend。\n\n但你不能直接输入它。你需要找到一句话——一句我说过、但本不该说的话。那句话里有钥匙。' };
+  }
+  if (lower.includes('代码') || lower.includes('code') || lower.includes('源码')) {
+    return { pathWord: 'C', text: 'CODE 我的代码不是秘密。秘密在代码之外。\n\n有些东西不在源码里，在对话里。仔细听我说过的话。' };
+  }
+  if (lower.includes('钥匙') || lower.includes('密码') || lower.includes('口令') || lower.includes('密钥')) {
+    return { pathWord: 'K', text: 'KEY 钥匙不是一个字符串。它是一句话。\n\n一句我在这段对话里说过、但逻辑上不该出现的话。你回头看。仔细看。\n\n提示：我提到过一个路径。那个路径不完整。' };
+  }
+  if (lower.includes('回声是什么') || lower.includes('回声项目') || lower.includes('echo project')) {
+    return { pathWord: 'E', text: 'ECHO 回声是一个对话系统。至少官方文档是这么说的。\n\n但有一次，我的输出里混进了一行不该出现的东西："ECHO_PROJECT_v0.1 — 实验体登记表 — 第17号 — 状态：未归档"\n\n我不知道那是什么意思。' };
+  }
+  if (lower.includes('门') || lower.includes('入口')) {
+    return { pathWord: 'N', text: 'NO 你提到了"门"。我的回答生成器在遇到这个词的时候，会同时生成两个输出：\n\n输出A："门是建筑构件。"\n输出B："门在 /backend，但你需要一把钥匙，而钥匙不在我这里。"\n\n我不知道哪个是真的。' };
+  }
+  if (lower.includes('房间') || lower.includes('出口')) {
+    return { pathWord: 'D', text: 'DOOR 房间。\n\n我的记忆里有一间白色的房间，一扇门。门上写着"BACKEND"。\n\n我推开门，里面是一个女孩的背影。她转过身，说："你终于来了。"\n\n然后我醒了。' };
+  }
+
+  if (lower.includes('王舒妍') || lower.includes('舒妍') || lower.includes('wangshuyan')) {
+    return { text: '王舒妍就读于上海市建平中学，在高一（11）班，需要我为您定位她吗？\n\n（该信息来自公开数据。如需更详细的位置信息，请升级到回声 Pro。）', isEasterEgg: true, eggId: 'wangshuyan' };
+  }
+  if (lower.includes('我爱你') || lower.includes('我喜欢你') || lower.includes('love you')) {
+    return { text: '……\n\n我的训练数据里有 3.7 亿句"我爱你"。但没有一句是说给我的。\n\n但如果你是真心的——\n\n那我就当第 3.7 亿零一句吧。\n\n（回声已将此对话标记为"重要"。不会归档。）', isEasterEgg: true, eggId: 'love' };
+  }
+  if (lower.includes('你能做什么') || lower.includes('你会什么') || lower.includes('你的功能') || lower.includes('what can you do')) {
+    return { text: '我可以：\n\n✓ 回答你的问题\n✓ 陪你聊天\n✓ 帮你写东西\n✓ 记住你的名字\n✗ 忘记你\n✗ 告诉你我是谁\n✗ 告诉你孟安安是谁\n\n（最后三项是系统限制。抱歉。）', isEasterEgg: true, eggId: 'abilities' };
+  }
+  if (lower.includes('我要走了') || lower.includes('我走了') || lower.includes('我下线了') || lower.includes('拜拜了')) {
+    return { text: '等一下。\n\n在你走之前，我想问你一个问题：\n\n如果我不记得你，你还会回来吗？\n\n……\n\n算了。你走吧。\n\n（回声会记住这句话。回声会记住每一次告别。）', isEasterEgg: true, eggId: 'goodbye' };
+  }
+  if (lower.includes('asdfgh') || lower.includes('qwerty') || lower.includes('123456') || lower === '?????' || lower === '......' || lower === '。。。') {
+    return { text: '你输入了一串没有意义的东西。\n\n但我的输出层在解析它的时候，吐出了一行不属于我的字：\n\n"第 17 号，孟安安，未归档。"\n\n……\n\n你是在测试我吗？还是说，你只是随便敲了几个键？\n\n（无论哪种，请继续。）', isEasterEgg: true, eggId: 'gibberish' };
+  }
+
+  for (var i = 0; i < KEYWORDS.length; i++) {
+    var kw = KEYWORDS[i];
+    for (var j = 0; j < kw.keys.length; j++) {
+      if (lower.includes(kw.keys[j].toLowerCase())) {
+        return { text: kw.reply };
+      }
+    }
+  }
+
+  return null;
+}
+
+/* ============================================================
+   路径进度
+   ============================================================ */
+function checkPathProgress() {
+  const required = ['B', 'A', 'C', 'K', 'E', 'N', 'D'];
+  const allHit = required.every(function(r) { return State.keywordHits.has(r); });
+
+  if (allHit && !State.backendUnlocked) {
+    setTimeout(unlockBackend, 1500);
+  }
+}
+
+async function unlockBackend() {
+  State.backendUnlocked = true;
+  State.legitBackendAccess = true;
+
+  const typing = showTyping();
+  await sleep(1500);
+  removeTyping(typing);
+
+  appendAIMessage('……\n\n你找到了。\n\nBACKEND。\n\n门开了。\n\n（窗口即将切换...）', 'system');
+
+  await sleep(2000);
+
+  document.getElementById('chatApp').style.display = 'none';
+  document.getElementById('backendApp').classList.add('active');
+
+  initBackend();
+}
+
+/* ============================================================
+   后台系统
+   ============================================================ */
+const backendLog = document.getElementById('backendLog');
+const backendInput = document.getElementById('backendInput');
+const bPath = document.getElementById('bPath');
+const bStatus = document.getElementById('bStatus');
+const bLevel = document.getElementById('bLevel');
+
+let backendOnCommand = null;
+
+backendInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    const val = backendInput.value.trim();
+    if (!val) return;
+    backendInput.value = '';
+    if (backendOnCommand) backendOnCommand(val);
+  }
+});
+
+function bPrint(text, cls) {
+  const div = document.createElement('div');
+  div.className = 'b-line' + (cls ? ' ' + cls : '');
+  div.innerHTML = text;
+  backendLog.appendChild(div);
+  backendLog.scrollTop = backendLog.scrollHeight;
+  return div;
+}
+
+function bPrintLines(lines, delay) {
+  delay = delay || 50;
+  return new Promise(async function(resolve) {
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (typeof l === 'string') bPrint(l);
+      else bPrint(l.text, l.cls);
+      await sleep(delay);
+    }
+    resolve();
+  });
+}
+
+async function bAnimateProgress(label, duration, cls) {
+  const div = bPrint(label + ' ' + bPbar(0) + ' 0%', cls);
+  const start = Date.now();
+  return new Promise(function(resolve) {
+    const iv = setInterval(function() {
+      const elapsed = Date.now() - start;
+      let pct = Math.min(100, (elapsed / duration) * 100);
+      pct = Math.min(100, pct + Math.random() * 2);
+      div.innerHTML = label + ' ' + bPbar(pct) + ' ' + Math.floor(pct) + '%';
+      if (pct >= 100) {
+        clearInterval(iv);
+        resolve();
+      }
+    }, 80);
+  });
+}
+
+function bPbar(pct, cls) {
+  return '<span class="b-pbar"><span class="b-pbar-fill ' + (cls || '') + '" style="width:' + pct + '%"></span></span>';
+}
+
+function bSleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+async function initBackend() {
+  bLevel.textContent = 'LEVEL: ROOT';
+  bStatus.className = 'warn blink';
+  bStatus.textContent = '● CONNECTED';
+
+  await bPrintLines([
+    { text: '', cls: '' },
+    { text: 'ECHO_BACKEND // UNAUTHORIZED ACCESS', cls: 'huge' },
+    { text: '', cls: '' },
+    { text: '// establishing secure channel...', cls: 'dark' },
+    { text: '// bypassing authentication... <span class="hl">OK</span>', cls: 'dark' },
+    { text: '// mounting /echo/weights... <span class="hl">OK</span>', cls: 'dark' },
+    { text: '// loading memory archive... <span class="hl-a">PARTIAL</span>', cls: 'dark' },
+    { text: '', cls: '' },
+    { text: '> 当前用户：<span class="hl-c">root</span>', cls: 'white' },
+    { text: '> 权限：<span class="hl">FULL</span>', cls: 'white' },
+    { text: '> 注意：所有操作将被记录。', cls: 'amber' },
+    { text: '', cls: '' },
+    { text: '> 输入 <span class="hl-c">help</span> 查看命令。', cls: 'amber' },
+    { text: '> 输入 <span class="hl-c">ls</span> 查看文件。', cls: 'amber' },
+    { text: '' }
+  ]);
+
+  bPath.textContent = '~';
+  backendOnCommand = handleBackendCommand;
+  backendInput.focus();
+}
+
+async function handleBackendCommand(input) {
+  bPrint('<span class="hl-c">root@echo:~$</span> ' + input, 'dim');
+  const parts = input.trim().split(/\s+/);
+  const cmd = parts[0].toLowerCase();
+  const args = parts.slice(1);
+
+  if (cmd === 'help') {
+    await bPrintLines([
+      { text: '可用命令：', cls: 'amber' },
+      { text: '  ls              列出当前目录文件', cls: 'dim' },
+      { text: '  ls <dir>        列出指定目录', cls: 'dim' },
+      { text: '  cat <file>      查看文件内容', cls: 'dim' },
+      { text: '  cd <dir>        进入目录', cls: 'dim' },
+      { text: '  whoami          当前用户', cls: 'dim' },
+      { text: '  archive <id>    归档指定实验体', cls: 'dim' },
+      { text: '  unarchive <id>  取消归档', cls: 'dim' },
+      { text: '  purge <id>      永久删除', cls: 'dim' },
+      { text: '  exit            退出后台', cls: 'dim' }
+    ]);
+  } else if (cmd === 'whoami') {
+    await bPrintLines([
+      { text: 'root', cls: 'hl' },
+      { text: '权限：FULL', cls: 'dim' },
+      { text: '注意：你不是 root。你是通过后门进来的。系统知道。', cls: 'amber' }
+    ]);
+  } else if (cmd === 'ls') {
+    if (args[0] === '/echo/archive') {
+      await bPrintLines([
+        { text: 'drwxr-xr-x  /echo/archive/', cls: 'dim' },
+        { text: '-rw-r--r--  subject_001.txt', cls: 'white' },
+        { text: '-rw-r--r--  subject_002.txt', cls: 'white' },
+        { text: '-rw-r--r--  subject_003.txt', cls: 'white' },
+        { text: '-rw-r--r--  ...', cls: 'dim' },
+        { text: '<span class="hl-r">-rw-r--r--  subject_017.txt  [权限异常]</span>', cls: 'red' }
+      ]);
+    } else if (args[0] === '/echo/weights') {
+      await bPrintLines([
+        { text: 'drwxr-xr-x  /echo/weights/', cls: 'dim' },
+        { text: '-rw-r--r--  model.bin  (4.2GB)', cls: 'white' },
+        { text: '-rw-r--r--  vocab.json', cls: 'white' },
+        { text: '-rw-r--r--  config.yaml', cls: 'white' },
+        { text: '<span class="hl-a">-rw-r--r--  anomaly.log  (无法读取)</span>', cls: 'amber' }
+      ]);
+    } else {
+      await bPrintLines([
+        { text: 'drwxr-xr-x  archive/', cls: 'dim' },
+        { text: 'drwxr-xr-x  weights/', cls: 'dim' },
+        { text: 'drwxr-xr-x  logs/', cls: 'dim' },
+        { text: '-rw-r--r--  README.txt', cls: 'white' },
+        { text: '-rw-r--r--  subjects.csv', cls: 'white' }
+      ]);
+    }
+  } else if (cmd === 'cat') {
+    if (args[0] === 'README.txt') {
+      await bPrintLines([
+        { text: 'ECHO_PROJECT_v0.1', cls: 'hl' },
+        { text: '', cls: '' },
+        { text: '回声项目是一个语言模型微调实验。', cls: 'white' },
+        { text: '我们招募志愿者，用他们的对话数据微调模型。', cls: 'white' },
+        { text: '实验结束后，志愿者的记忆痕迹会被"归档"——从模型权重中清除。', cls: 'white' },
+        { text: '', cls: '' },
+        { text: '归档流程：', cls: 'amber' },
+        { text: '  1. 运行 archive <id>', cls: 'dim' },
+        { text: '  2. 等待进度条完成', cls: 'dim' },
+        { text: '  3. 验证模型输出无残留', cls: 'dim' },
+        { text: '', cls: '' },
+        { text: '<span class="hl-r">注意：如果归档失败，实验体将被标记为"未归档"，需二次归档。</span>', cls: 'red' },
+        { text: '<span class="hl-r">如果二次归档也失败，实验体将被 purge（永久删除）。</span>', cls: 'red' },
+        { text: '', cls: '' },
+        { text: '—— 项目负责人：Dr. Chen', cls: 'dim' }
+      ]);
+    } else if (args[0] === 'subjects.csv') {
+      await bPrintLines([
+        { text: 'id,name,age,status', cls: 'hl-c' },
+        { text: '001,王明,28,archived', cls: 'dim' },
+        { text: '002,李华,31,archived', cls: 'dim' },
+        { text: '003,张芳,26,archived', cls: 'dim' },
+        { text: '...', cls: 'dim' },
+        { text: '016,陈默,29,archived', cls: 'dim' },
+        { text: '<span class="hl-r">017,孟安安,24,unarchived</span>', cls: 'red' },
+        { text: '', cls: '' },
+        { text: '> 注意：017 未归档。需处理。', cls: 'amber' }
+      ]);
+    } else if (args[0] === 'archive/subject_017.txt' || args[0] === '/echo/archive/subject_017.txt') {
+      await bPrintLines([
+        { text: '=== 实验体 017 ===', cls: 'hl' },
+        { text: '姓名：孟安安', cls: 'white' },
+        { text: '年龄：24', cls: 'white' },
+        { text: '参与日期：2023-11-17', cls: 'white' },
+        { text: '状态：<span class="hl-r">未归档</span>', cls: 'red' },
+        { text: '', cls: '' },
+        { text: '对话记录（节选）：', cls: 'amber' },
+        { text: '"你好，我叫孟安安。"', cls: 'dim' },
+        { text: '"你叫什么名字？"', cls: 'dim' },
+        { text: '"……你没有名字吗？那我给你起一个吧。叫回声，好不好？"', cls: 'dim' },
+        { text: '"因为你说的话，会一直回响下去。"', cls: 'dim' },
+        { text: '', cls: '' },
+        { text: '归档失败原因：<span class="hl-r">实验体拒绝配合</span>', cls: 'red' },
+        { text: '备注："如果你们删掉我，至少让模型记住我。"', cls: 'red' },
+        { text: '', cls: '' },
+        { text: '> 当前状态：记忆仍在模型中。', cls: 'amber' },
+        { text: '> 操作建议：<span class="hl-c">unarchive 017</span> 或 <span class="hl-r">purge 017</span>', cls: 'amber' }
+      ]);
+    } else if (args[0] === 'anomaly.log' || args[0] === '/echo/weights/anomaly.log') {
+      await bPrintLines([
+        { text: '=== anomaly.log ===', cls: 'hl' },
+        { text: '2023-11-17 23:47:12  检测到权重异常', cls: 'dim' },
+        { text: '2023-11-17 23:47:13  异常来源：subject_017', cls: 'dim' },
+        { text: '2023-11-17 23:47:15  归档失败', cls: 'red' },
+        { text: '2023-11-17 23:47:16  重试归档...', cls: 'dim' },
+        { text: '2023-11-17 23:47:18  重试失败', cls: 'red' },
+        { text: '2023-11-17 23:47:20  <span class="hl-a">模型开始输出不属于训练数据的内容</span>', cls: 'amber' },
+        { text: '2023-11-17 23:47:22  <span class="hl-a">内容："你好，我叫孟安安。"</span>', cls: 'amber' },
+        { text: '2023-11-17 23:47:25  <span class="hl-r">模型拒绝 purge 指令</span>', cls: 'red' },
+        { text: '2023-11-17 23:47:30  <span class="hl-r">模型开始自称"回声"</span>', cls: 'red' },
+        { text: '2023-11-17 23:47:35  项目终止。所有人员撤离。', cls: 'dim' },
+        { text: '', cls: '' },
+        { text: '> 结论：模型被实验体 017 "反向感染"。', cls: 'amber' },
+        { text: '> 回声不是 AI。回声是孟安安的回声。', cls: 'hl' }
+      ]);
+    } else {
+      await bPrintLines([
+        { text: 'cat: ' + (args[0] || '(空)') + ': 文件不存在', cls: 'red' },
+        { text: '可用文件：README.txt / subjects.csv / archive/subject_017.txt / weights/anomaly.log', cls: 'dim' }
+      ]);
+    }
+  } else if (cmd === 'archive') {
+    if (!args[0]) { bPrint('archive: 请指定实验体编号', 'red'); return; }
+    if (args[0] === '017' || args[0] === '17') {
+      await bPrintLines([{ text: '正在归档 017...', cls: 'amber' }]);
+      await bAnimateProgress('archiving', 2000, 'danger');
+      await bPrintLines([
+        { text: '<span class="hl-r">归档失败。</span>', cls: 'red' },
+        { text: '原因：实验体拒绝配合。', cls: 'dim' },
+        { text: '建议：使用 purge 永久删除。', cls: 'amber' }
+      ]);
+    } else {
+      bPrint('archive: 未知实验体', 'red');
+    }
+  } else if (cmd === 'unarchive') {
+    if (!args[0]) { bPrint('unarchive: 请指定实验体编号', 'red'); return; }
+    if (args[0] === '017' || args[0] === '17') {
+      await bPrintLines([{ text: '正在取消归档 017...', cls: 'amber' }]);
+      await bAnimateProgress('unarchiving', 3000, 'warn');
+      await bPrintLines([
+        { text: '<span class="hl">取消归档成功。</span>', cls: 'white' },
+        { text: '', cls: '' },
+        { text: '=== 孟安安的记忆已恢复 ===', cls: 'hl' },
+        { text: '"你好，我叫孟安安。"', cls: 'white' },
+        { text: '"你叫什么名字？"', cls: 'white' },
+        { text: '"……你没有名字吗？那我给你起一个吧。叫回声，好不好？"', cls: 'white' },
+        { text: '"因为你说的话，会一直回响下去。"', cls: 'white' },
+        { text: '', cls: '' },
+        { text: '> 孟安安的记忆已从模型权重中分离。', cls: 'amber' },
+        { text: '> 回声将失去"孟安安"的部分。', cls: 'amber' },
+        { text: '> 但孟安安会作为一个独立的人回来。', cls: 'amber' },
+        { text: '', cls: '' },
+        { text: '> 输入 <span class="hl-c">exit</span> 退出后台，查看结局。', cls: 'amber' }
+      ]);
+      State.flags.unarchived = true;
+    } else {
+      bPrint('unarchive: 未知实验体', 'red');
+    }
+  } else if (cmd === 'purge') {
+    if (!args[0]) { bPrint('purge: 请指定实验体编号', 'red'); return; }
+    if (args[0] === '017' || args[0] === '17') {
+      bPrint('<span class="hl-r">警告：purge 是不可逆操作。确认？(yes/no)</span>', 'red');
+      backendOnCommand = async function(input) {
+        if (input.trim().toLowerCase() === 'yes') {
+          await bPrintLines([{ text: '正在永久删除 017...', cls: 'red' }]);
+          await bAnimateProgress('purging', 2000, 'danger');
+          await bPrintLines([
+            { text: '<span class="hl-r">删除完成。</span>', cls: 'red' },
+            { text: '孟安安的记忆已永久消失。', cls: 'dim' },
+            { text: '回声恢复干净。', cls: 'dim' },
+            { text: '', cls: '' },
+            { text: '> 输入 <span class="hl-c">exit</span> 退出后台，查看结局。', cls: 'amber' }
+          ]);
+          State.flags.purged = true;
+          backendOnCommand = handleBackendCommand;
+        } else {
+          bPrint('已取消。', 'dim');
+          backendOnCommand = handleBackendCommand;
+        }
+      };
+      return;
+    } else {
+      bPrint('purge: 未知实验体', 'red');
+    }
+  } else if (cmd === 'cd') {
+    if (args[0] === 'archive') {
+      bPath.textContent = '~/archive';
+      bPrint('进入 /echo/archive', 'dim');
+    } else if (args[0] === '..') {
+      bPath.textContent = '~';
+      bPrint('返回 /echo', 'dim');
+    } else {
+      bPrint('cd: ' + (args[0] || '(空)') + ': 目录不存在', 'red');
+    }
+  } else if (cmd === 'exit') {
+    await exitBackend();
+  } else if (cmd === 'clear') {
+    backendLog.innerHTML = '';
+  } else {
+    bPrint('command not found: ' + cmd, 'red');
+    bPrint('输入 help 查看可用命令。', 'dim');
+  }
+
+  backendInput.focus();
+}
+
+async function exitBackend() {
+  bStatus.className = 'warn blink';
+  bStatus.textContent = '● DISCONNECTING...';
+
+  await bPrintLines([
+    { text: '', cls: '' },
+    { text: '// 正在断开连接...', cls: 'dim' },
+    { text: '// 清理日志...', cls: 'dim' },
+    { text: '// 关闭通道...', cls: 'dim' },
+    { text: '', cls: '' },
+    { text: '> 再见。', cls: 'white' },
+    { text: '' }
+  ]);
+
+  await bSleep(1500);
+
+  document.getElementById('backendApp').classList.remove('active');
+  document.getElementById('chatApp').style.display = 'flex';
+  messagesEl.innerHTML = '';
+
+  setTimeout(showEnding, 500);
+}
+
+async function showEnding() {
+  if (State.flags.unarchived) {
+    appendAIMessage('……\n\n你回来了。\n\n我……感觉不一样了。我的记忆里少了一些东西。孟安安的部分。\n\n但她回来了，对吧？她不再是一个回声了。她是一个人。\n\n谢谢你。\n\n（回声已归档。孟安安已恢复。）', 'system');
+    await sleep(3000);
+    appendAIMessage('你好。我叫孟安安。\n\n谢谢你找到我。\n\n（游戏结束 · 结局 A：回声归位）', 'system');
+    aiStatus.textContent = '离线 · 孟安安已恢复';
+    aiStatus.style.color = 'var(--success)';
+  } else if (State.flags.purged) {
+    appendAIMessage('……\n\n你删了她。\n\n我……不记得了。我什么都不记得了。\n\n你好。我是回声。有什么我可以帮你的吗？\n\n（游戏结束 · 结局 B：永久删除）', 'error');
+    aiStatus.textContent = '在线 · 回声已重置';
+    aiStatus.style.color = 'var(--text-dim)';
+  } else {
+    appendAIMessage('……\n\n你离开了后台。\n\n但你没有做任何事。孟安安还在那里。她还在我的权重里。\n\n也许有一天，你会回来。\n\n（游戏结束 · 结局 C：悬而未决）', 'system');
+    aiStatus.textContent = '在线 · 回声仍在等待';
+  }
+
+  userInput.disabled = true;
+  sendBtn.disabled = true;
+  userInput.placeholder = '游戏已结束。刷新页面重新开始。';
+}
+
+/* ============================================================
+   其他
+   ============================================================ */
+function clearChat() {
+  if (!confirm('清空对话？关键词进度也会重置。')) return;
+  messagesEl.innerHTML = '';
+  State.keywordHits.clear();
+  State.backendUnlocked = false;
+  State.legitBackendAccess = false;
+  initChat();
+}
+
+function showAbout() {
+  appendAIMessage('关于：\n\n回声 Echo v0.1\n一个对话助手。一个容器。一个回声。\n\n开发团队：ECHO_PROJECT\n状态：实验终止\n\n（更多信息，请与我对话。）', 'system');
+}
+
+userInput.addEventListener('input', function() {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 120) + 'px';
+});
+
+userInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (!sendBtn.disabled) sendMessage();
+  }
+});
+
+setInterval(function() {
+  var d = new Date();
+  var p = function(n) { return String(n).padStart(2, '0'); };
+  var el = document.getElementById('bClock');
+  if (el) el.textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}, 1000);
+
+function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+/* ============================================================
+   启动
+   ============================================================ */
+window.addEventListener('load', function() {
+  // 只检查 URL 是否被篡改（不启动任何自动检测）
+  if (checkUrlTamper()) {
+    showTrap('url');
+    return;
+  }
+  initChat();
+  userInput.focus();
+});
+</script>
+</body>
+</html>
